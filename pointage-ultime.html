@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pointage TMSPC</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+/* BASE */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-tap-highlight-color:transparent}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:linear-gradient(135deg,#1a0533 0%,#0d1f3c 40%,#0a2a1a 100%);color:#e8f5e8;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:#2dd882;border-radius:3px}
+@keyframes ripple{0%{box-shadow:0 0 0 0 rgba(45,216,130,.6)}100%{box-shadow:0 0 0 8px rgba(45,216,130,0)}}
+@keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes slidein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes scanline{0%{top:0}100%{top:100%}}
+@keyframes tin{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes tout{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,20px)}}
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(26,5,51,.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(45,216,130,.1)}
+.hdr{max-width:1200px;margin:0 auto;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.logo-title{font-size:clamp(1.4rem,3vw,2rem);font-weight:900;letter-spacing:-.02em;line-height:1;background:linear-gradient(110deg,#2dd882,#00c6ff,#a3ff6e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:.58rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(45,216,130,.4);font-family:'JetBrains Mono',monospace;margin-top:3px}
+#clock{font-family:'JetBrains Mono',monospace;font-size:clamp(1.1rem,2vw,1.65rem);font-weight:700;color:#e8f5e8;letter-spacing:.06em;display:block}
+#date{font-size:.58rem;color:rgba(232,245,232,.3);text-transform:capitalize;margin-top:3px;font-family:'JetBrains Mono',monospace;text-align:right}
+/* MAIN */
+main{max-width:1200px;margin:0 auto;padding:22px 20px 60px}
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.scard{border-radius:16px;padding:28px 18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);position:relative;overflow:hidden;transition:transform .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:110px}
+.scard:hover{transform:translateY(-2px)}
+.scard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--cc)}
+.scard-val{font-size:2.6rem;font-weight:900;line-height:1;font-family:'JetBrains Mono',monospace;color:var(--cc);margin-bottom:10px}
+.scard-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.16em;font-weight:700;color:rgba(232,245,232,.45)}
+/* BARRE */
+.bar-wrap{margin-bottom:22px}
+.bar-head{display:flex;justify-content:space-between;margin-bottom:7px}
+.bar-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:rgba(232,245,232,.3);font-family:'JetBrains Mono',monospace}
+.bar-pct{font-size:.6rem;font-weight:700;color:#2dd882;font-family:'JetBrains Mono',monospace}
+.bar-track{height:6px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;width:0%;background:linear-gradient(90deg,#2dd882,#00c6ff);transition:width .35s ease}
+/* SCAN BUTTONS */
+.scan-btn-wrap{margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.scan-btn{display:flex;align-items:center;gap:9px;padding:12px 20px;border-radius:13px;font-weight:800;font-size:.85rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;touch-action:manipulation;transition:all .12s;letter-spacing:.02em;border:1px solid}
+.scan-btn.g{background:rgba(45,216,130,.15);border-color:rgba(45,216,130,.35);color:#2dd882}
+.scan-btn.g:hover{background:rgba(45,216,130,.25)}
+.scan-btn.p{background:rgba(160,100,255,.12);border-color:rgba(160,100,255,.3);color:#c084fc}
+.scan-btn.p:hover{background:rgba(160,100,255,.22)}
+.scan-hint{font-size:.63rem;color:rgba(232,245,232,.28);font-family:'JetBrains Mono',monospace}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:linear-gradient(135deg,#1a0533,#0d1f3c);border:1px solid rgba(45,216,130,.2);border-radius:24px;padding:26px;width:min(400px,94vw);position:relative}
+.modal-title{font-size:1rem;font-weight:900;color:#e8f5e8;margin-bottom:4px}
+.modal-sub{font-size:.63rem;color:rgba(232,245,232,.32);font-family:'JetBrains Mono',monospace;margin-bottom:18px}
+.modal-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(232,245,232,.5);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:rgba(255,255,255,.14);color:#fff}
+#scanner-wrap{border-radius:14px;overflow:hidden;position:relative;border:2px solid rgba(45,216,130,.3);background:#000;min-height:200px}
+#qr-reader{width:100%}
+.scan-laser{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#2dd882,#00c6ff,#2dd882,transparent);box-shadow:0 0 10px rgba(45,216,130,.8);animation:scanline 1.8s linear infinite;pointer-events:none;z-index:10}
+.sc{position:absolute;width:22px;height:22px;border-color:#2dd882;border-style:solid;z-index:10}
+.sc.tl{top:8px;left:8px;border-width:3px 0 0 3px}
+.sc.tr{top:8px;right:8px;border-width:3px 3px 0 0}
+.sc.bl{bottom:8px;left:8px;border-width:0 0 3px 3px}
+.sc.br{bottom:8px;right:8px;border-width:0 3px 3px 0}
+#scan-status{margin-top:12px;text-align:center;font-size:.7rem;font-family:'JetBrains Mono',monospace;color:rgba(232,245,232,.5);letter-spacing:.05em;min-height:20px;padding:4px}
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start}
+.panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:18px;position:relative}
+.panel::before{content:'';position:absolute;top:0;left:18px;right:18px;height:1px;background:linear-gradient(90deg,transparent,rgba(45,216,130,.3),transparent)}
+.panel-hd{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(45,216,130,.6);font-family:'JetBrains Mono',monospace;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.panel-hd::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(45,216,130,.15),transparent)}
+/* ELEVES */
+.elist{display:flex;flex-direction:column;gap:12px}
+.erow{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;transition:background .08s,border-color .08s;will-change:background,border-color}
+.erow.ep{background:rgba(45,216,130,.08);border-color:rgba(45,216,130,.28)}
+.av{width:42px;height:42px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;color:#fff}
+.ei{flex:1;min-width:0}
+.ename{font-weight:700;font-size:.9rem;color:#e8f5e8;letter-spacing:-.01em}
+.statbar{display:flex;align-items:center;gap:6px;margin-top:5px}
+.spill{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.spill.sa{background:rgba(232,245,232,.2)}
+.spill.sp{background:#2dd882;animation:ripple 1.6s ease-out infinite}
+.shint{font-family:'JetBrains Mono',monospace;font-size:.63rem;font-weight:700}
+.shint.sa-txt{color:rgba(232,245,232,.28)}
+.shint.sp-txt{color:#2dd882}
+/* BOUTONS */
+.bgrp{display:flex;gap:6px;flex-shrink:0;margin-left:auto;padding-left:8px}
+.btn{padding:8px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);color:rgba(232,245,232,.4);font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap;touch-action:manipulation;user-select:none;transition:background .08s,color .08s,border-color .08s}
+.btn:disabled{opacity:.2;cursor:not-allowed;pointer-events:none}
+.btn.arrive:not(:disabled):active,.btn.arrive:not(:disabled):hover{background:rgba(45,216,130,.18);color:#2dd882;border-color:rgba(45,216,130,.4)}
+.btn.parti:not(:disabled):active,.btn.parti:not(:disabled):hover{background:rgba(255,100,100,.16);color:#ff7070;border-color:rgba(255,100,100,.35)}
+/* JOURNAL */
+.journal-panel{position:sticky;top:16px}
+.journal-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.jcol-hd{display:flex;align-items:center;gap:5px;padding:7px 9px;border-radius:9px;margin-bottom:8px;font-size:.56rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-family:'JetBrains Mono',monospace}
+.jcol-hd.arr{background:rgba(45,216,130,.08);color:rgba(45,216,130,.65)}
+.jcol-hd.sor{background:rgba(255,100,100,.08);color:rgba(255,100,100,.65)}
+.jcol-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.jcol-hd.arr .jcol-dot{background:#2dd882}
+.jcol-hd.sor .jcol-dot{background:#ff7070}
+.jcol-cnt{margin-left:auto;font-size:.7rem;font-weight:900}
+.jcol-hd.arr .jcol-cnt{color:#2dd882}
+.jcol-hd.sor .jcol-cnt{color:#ff7070}
+.jlist{display:flex;flex-direction:column;gap:5px;max-height:calc(100vh - 320px);overflow-y:auto}
+.jcard{padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.jcard:first-child{animation:slidein .2s ease}
+.jcard-name{font-size:.76rem;font-weight:700;color:rgba(232,245,232,.82)}
+.jcard-time{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:rgba(232,245,232,.24);margin-top:3px}
+.jempty{text-align:center;padding:20px 4px;font-size:.6rem;color:rgba(232,245,232,.18);font-family:'JetBrains Mono',monospace}
+/* TOAST */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(20,5,40,.97),rgba(10,25,50,.97));border:1px solid rgba(45,216,130,.5);border-radius:16px;padding:14px 22px;display:flex;align-items:center;gap:14px;z-index:9999;pointer-events:none;animation:tin .28s ease;backdrop-filter:blur(16px);white-space:nowrap;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+#toast.hide{animation:tout .28s ease forwards}
+.toast-check{width:38px;height:38px;border-radius:50%;background:rgba(45,216,130,.2);border:2px solid #2dd882;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#2dd882;font-weight:900;flex-shrink:0}
+.toast-name{font-weight:800;font-size:.92rem;color:#fff}
+.toast-time{font-size:.66rem;color:#2dd882;font-family:'JetBrains Mono',monospace;margin-top:3px}
+/* FOOTER */
+footer{text-align:center;margin-top:44px;padding-top:20px;border-top:1px solid rgba(255,255,255,.05)}
+.fcredit{font-family:'JetBrains Mono',monospace;font-size:.64rem;color:rgba(232,245,232,.18);letter-spacing:.08em}
+.fname{font-weight:700;font-size:.7rem;background:linear-gradient(90deg,#2dd882,#00c6ff,#a3ff6e);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 3s linear infinite}
+/* PAGE QR */
+#print-page{display:none;position:fixed;inset:0;z-index:99999;background:#f0f0f0;overflow-y:auto;padding:28px 20px}
+.ph{text-align:center;margin-bottom:24px}
+.ph h1{font-size:1.5rem;color:#1a1a2e;font-family:'Plus Jakarta Sans',sans-serif;font-weight:900}
+.ph p{font-size:.75rem;color:#777;margin-top:5px;font-family:monospace}
+.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px;max-width:960px;margin:0 auto}
+.qr-cell{border:1px solid #ddd;border-radius:14px;padding:18px 14px;text-align:center;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.qr-cell-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:.84rem;color:#1a1a2e;margin-top:12px;line-height:1.3}
+.qr-cell-sub{font-size:.6rem;color:#aaa;font-family:monospace;margin-top:3px}
+.pclose{display:block;margin:0 auto 24px;padding:11px 28px;background:linear-gradient(135deg,#1a0533,#0d1f3c);color:#fff;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:.88rem}
+@media print{.pclose{display:none}body>*:not(#print-page){display:none}#print-page{display:block!important;position:static}}
+/* RESPONSIVE */
+@media(max-width:820px){
+  main{padding:14px 14px 50px}
+  .hdr{padding:10px 14px}
+  .stats{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .scard{padding:18px 8px;min-height:90px}
+  .scard-val{font-size:2rem}
+  .scard-lbl{font-size:.55rem;letter-spacing:.1em}
+  .layout{grid-template-columns:1fr;gap:12px}
+  .journal-panel{position:static}
+  .elist{gap:10px}
+  .erow{padding:12px}
+  .jlist{max-height:200px}
+  .scan-hint{display:none}
+}
+@media(max-width:420px){
+  .btn{padding:7px 10px;font-size:.66rem}
+  .scan-btn{font-size:.78rem;padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div><div class="logo-title">Classe TMSPC</div><div class="logo-sub">Lycée Jean de la Taille · Pointage</div></div>
+    <div><div id="clock">--:--:--</div><div id="date">---</div></div>
+  </div>
+</header>
+<main>
+  <div class="stats" id="stats"></div>
+  <div class="bar-wrap">
+    <div class="bar-head"><span class="bar-lbl">Taux de présence</span><span class="bar-pct" id="bar-pct">0%</span></div>
+    <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+  </div>
+  <div class="scan-btn-wrap">
+    <button class="scan-btn g" onclick="openScanner()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>
+      Scanner un QR code
+    </button>
+    <button class="scan-btn p" onclick="showQRPage()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Voir / Imprimer QR codes
+    </button>
+    <span class="scan-hint">Pointage instantané sans toucher l'écran</span>
+  </div>
+  <div class="layout">
+    <div class="panel">
+      <div class="panel-hd" id="panel-hd">Élèves — 14</div>
+      <div class="elist" id="elist"></div>
+    </div>
+    <div class="panel journal-panel">
+      <div class="panel-hd" id="journal-hd">Journal — 0 événement</div>
+      <div class="journal-cols">
+        <div>
+          <div class="jcol-hd arr"><span class="jcol-dot"></span>Arrivées<span class="jcol-cnt" id="cnt-a">0</span></div>
+          <div class="jlist" id="col-a"><div class="jempty">—</div></div>
+        </div>
+        <div>
+          <div class="jcol-hd sor"><span class="jcol-dot"></span>Sorties<span class="jcol-cnt" id="cnt-s">0</span></div>
+          <div class="jlist" id="col-s"><div class="jempty">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer><div class="fcredit">Créé par <span class="fname">Anass Rachdad</span></div></footer>
+</main>
+
+<!-- MODAL SCANNER -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeScanner()">✕</button>
+    <div class="modal-title">Scanner le QR code</div>
+    <div class="modal-sub">Approche le QR code de l'élève devant la caméra</div>
+    <div id="scanner-wrap">
+      <div id="qr-reader"></div>
+      <div class="scan-laser"></div>
+      <div class="sc tl"></div><div class="sc tr"></div>
+      <div class="sc bl"></div><div class="sc br"></div>
+    </div>
+    <div id="scan-status">En attente d'un QR code...</div>
+  </div>
+</div>
+
+<!-- PAGE QR CODES -->
+<div id="print-page">
+  <button class="pclose" onclick="hideQRPage()">✕ Fermer</button>
+  <div class="ph"><h1>QR Codes — Classe TMSPC</h1><p>Lycée Jean de la Taille · Un QR code par élève à distribuer ou afficher</p></div>
+  <div class="qr-grid" id="qr-grid"></div>
+</div>
+
+<script>
+const COLORS=[["#f97316","#ef4444"],["#06b6d4","#3b82f6"],["#a855f7","#ec4899"],["#10b981","#06b6d4"],["#f59e0b","#f97316"],["#6366f1","#a855f7"],["#14b8a6","#10b981"],["#e879f9","#a855f7"]];
+const students=[
+  {id:1,name:"Elvis Aziaso",ci:0},{id:2,name:"Melvyn Bigot",ci:1},
+  {id:3,name:"Amine Bouyahia",ci:2},{id:4,name:"Adnane Chaboune",ci:3},
+  {id:5,name:"Paul Chevalier-Alouane",ci:4},{id:6,name:"Mouade Dehmani",ci:5},
+  {id:7,name:"Quentin Derain",ci:6},{id:8,name:"Sezgin Gulter",ci:7},
+  {id:9,name:"Benjamin Houdet",ci:0},{id:10,name:"Jessy Monvoisin",ci:1},
+  {id:11,name:"Anass Rachdad",ci:2},{id:12,name:"Luka Salvatore",ci:3},
+  {id:13,name:"Walid Souilah",ci:4},{id:14,name:"Amine Yahya",ci:5},
+];
+const QR_PREFIX="TMSPC_2025_ELEVE_";
+const qrMap={};students.forEach(s=>qrMap[QR_PREFIX+s.id]=s.id);
+const state={};students.forEach(s=>state[s.id]={s:"absent",at:null});
+const logs={a:[],o:[]};
+const T=()=>new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+const D=()=>new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+const INI=n=>n.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+function tick(){document.getElementById("clock").textContent=T();document.getElementById("date").textContent=D();}
+tick();setInterval(tick,1000);
+function initRender(){
+  document.getElementById("elist").innerHTML=students.map(s=>{
+    const[c1,c2]=COLORS[s.ci%COLORS.length];
+    return `<div class="erow" id="row-${s.id}"><div class="av" style="background:linear-gradient(135deg,${c1},${c2})">${INI(s.name)}</div><div class="ei"><div class="ename">${s.name}</div><div class="statbar" id="sb-${s.id}"><span class="spill sa"></span><span class="shint sa-txt">Absent</span></div></div><div class="bgrp"><button class="btn arrive" id="ba-${s.id}" ontouchstart="" onclick="arrive(${s.id})">▶ Arrivé</button><button class="btn parti" id="bp-${s.id}" ontouchstart="" onclick="depart(${s.id})" disabled>■ Parti</button></div></div>`;
+  }).join("");updateStats();
+}
+function arrive(id,fromScan=false){
+  const st=state[id];if(!st||st.s==="present")return false;
+  st.s="present";st.at=st.at||T();const t=T();
+  document.getElementById("row-"+id).className="erow ep";
+  document.getElementById("sb-"+id).innerHTML=`<span class="spill sp"></span><span class="shint sp-txt">Présent · ${st.at}</span>`;
+  document.getElementById("ba-"+id).disabled=true;
+  document.getElementById("bp-"+id).disabled=false;
+  const s=students.find(s=>s.id===id);
+  logs.a.unshift({name:s.name,time:t});if(logs.a.length>50)logs.a.pop();
+  updateStats();updateJournal();if(fromScan)showToast(s.name,t);return true;
+}
+function depart(id){
+  const st=state[id];if(!st||st.s!=="present")return;
+  st.s="absent";st.at=null;const t=T();
+  document.getElementById("row-"+id).className="erow";
+  document.getElementById("sb-"+id).innerHTML=`<span class="spill sa"></span><span class="shint sa-txt">Absent</span>`;
+  document.getElementById("ba-"+id).disabled=false;
+  document.getElementById("bp-"+id).disabled=true;
+  const s=students.find(s=>s.id===id);
+  logs.o.unshift({name:s.name,time:t});if(logs.o.length>50)logs.o.pop();
+  updateStats();updateJournal();
+}
+let toastTimer=null;
+function showToast(name,time){
+  if(toastTimer)clearTimeout(toastTimer);
+  let el=document.getElementById("toast");if(el)el.remove();
+  el=document.createElement("div");el.id="toast";
+  el.innerHTML=`<div class="toast-check">✓</div><div><div class="toast-name">${name}</div><div class="toast-time">Pointé présent à ${time}</div></div>`;
+  document.body.appendChild(el);
+  toastTimer=setTimeout(()=>{el.classList.add("hide");setTimeout(()=>el.remove(),300);},3500);
+}
+function updateStats(){
+  const vals=Object.values(state);
+  const present=vals.filter(s=>s.s==="present").length;
+  const absent=vals.filter(s=>s.s==="absent").length;
+  const total=students.length,pct=Math.round(present/total*100);
+  document.getElementById("stats").innerHTML=[
+    {v:total,l:"Total",cc:"#a78bfa"},{v:present,l:"Présents",cc:"#2dd882"},{v:absent,l:"Absents",cc:"#94a3b8"}
+  ].map(c=>`<div class="scard" style="--cc:${c.cc}"><div class="scard-val">${c.v}</div><div class="scard-lbl">${c.l}</div></div>`).join("");
+  document.getElementById("bar-pct").textContent=pct+"%";
+  document.getElementById("bar-fill").style.width=pct+"%";
+}
+function updateJournal(){
+  const total=logs.a.length+logs.o.length;
+  document.getElementById("journal-hd").textContent=`Journal — ${total} événement${total!==1?"s":""}`;
+  document.getElementById("cnt-a").textContent=logs.a.length;
+  document.getElementById("cnt-s").textContent=logs.o.length;
+  const mk=l=>`<div class="jcard"><div class="jcard-name">${l.name}</div><div class="jcard-time">${l.time}</div></div>`;
+  document.getElementById("col-a").innerHTML=logs.a.length?logs.a.map(mk).join(""):`<div class="jempty">—</div>`;
+  document.getElementById("col-s").innerHTML=logs.o.length?logs.o.map(mk).join(""):`<div class="jempty">—</div>`;
+}
+let html5QrCode=null,scanCooldown=false;
+function openScanner(){
+  document.getElementById("modal").classList.add("open");
+  document.getElementById("scan-status").textContent="Démarrage de la caméra...";
+  html5QrCode=new Html5Qrcode("qr-reader");
+  html5QrCode.start({facingMode:"environment"},{fps:15,qrbox:{width:200,height:200}},onScanSuccess,()=>{})
+  .then(()=>{document.getElementById("scan-status").textContent="En attente d'un QR code...";})
+  .catch(()=>{document.getElementById("scan-status").textContent="Autorise l'accès à la caméra et réessaie";});
+}
+function onScanSuccess(text){
+  if(scanCooldown)return;
+  const id=qrMap[text];
+  if(!id){document.getElementById("scan-status").textContent="QR code non reconnu";return;}
+  const s=students.find(s=>s.id===id);
+  if(state[id].s==="present"){document.getElementById("scan-status").textContent=`${s.name} est déjà présent`;return;}
+  arrive(id,true);
+  document.getElementById("scan-status").textContent=`✓ ${s.name} — pointé à ${T()}`;
+  scanCooldown=true;
+  setTimeout(()=>{scanCooldown=false;document.getElementById("scan-status").textContent="En attente du prochain QR code...";},2000);
+}
+function closeScanner(){
+  if(html5QrCode){html5QrCode.stop().catch(()=>{}).finally(()=>{html5QrCode.clear();html5QrCode=null;});}
+  document.getElementById("modal").classList.remove("open");
+  document.getElementById("qr-reader").innerHTML="";
+}
+document.getElementById("modal").addEventListener("click",function(e){if(e.target===this)closeScanner();});
+let qrBuilt=false;
+function showQRPage(){
+  document.getElementById("print-page").style.display="block";
+  if(!qrBuilt){buildQRCodes();qrBuilt=true;}
+}
+function hideQRPage(){document.getElementById("print-page").style.display="none";}
+function buildQRCodes(){
+  const grid=document.getElementById("qr-grid");grid.innerHTML="";
+  students.forEach((s,i)=>{
+    const cell=document.createElement("div");cell.className="qr-cell";
+    const qrDiv=document.createElement("div");qrDiv.style.cssText="display:flex;justify-content:center";
+    cell.appendChild(qrDiv);
+    const nm=document.createElement("div");nm.className="qr-cell-name";nm.textContent=s.name;
+    const sb=document.createElement("div");sb.className="qr-cell-sub";sb.textContent="TMSPC · Lycée Jean de la Taille";
+    cell.appendChild(nm);cell.appendChild(sb);grid.appendChild(cell);
+    setTimeout(()=>{new QRCode(qrDiv,{text:QR_PREFIX+s.id,width:130,height:130,colorDark:"#1a1a2e",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});},i*40);
+  });
+}
+initRender();
+</script>
+</body>
+</html>
